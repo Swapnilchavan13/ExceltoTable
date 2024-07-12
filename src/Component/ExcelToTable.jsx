@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { useTable, useBlockLayout } from "react-table";
+import axios from "axios";
 import './ExcelToTable.css';
 
 export const ExcelToTable = () => {
@@ -9,6 +10,33 @@ export const ExcelToTable = () => {
   const [newColumn, setNewColumn] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(15);
+  const [fileName, setFileName] = useState("");
+  const [excelName, setExcelName] = useState("");
+
+  useEffect(() => {
+    if (excelName) {
+      fetchStoredData(excelName);
+    }
+  }, [excelName]);
+
+  const fetchStoredData = (name) => {
+    axios.get(`http://localhost:5000/getData/${name}`)
+      .then(response => {
+        const storedData = response.data;
+        if (storedData.length > 0) {
+          const headers = Object.keys(storedData[0]);
+          const cols = headers.map(header => ({
+            Header: header,
+            accessor: header,
+          }));
+          setColumns(cols);
+          setData(storedData);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching data:', error);
+      });
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -38,6 +66,7 @@ export const ExcelToTable = () => {
 
       setColumns(cols);
       setData(formattedData);
+      setFileName(file.name);
       setCurrentPage(1); // Reset to first page
     };
 
@@ -76,6 +105,18 @@ export const ExcelToTable = () => {
     XLSX.writeFile(wb, "UpdatedData.xlsx");
   };
 
+  const saveToDatabase = () => {
+    axios.post('http://localhost:5000/saveData', { name: excelName, data })
+      .then(response => {
+        alert('Data saved successfully');
+        fetchStoredData(excelName); // Fetch updated data after save
+      })
+      .catch(error => {
+        console.error('Error saving data:', error.response ? error.response.data : error.message);
+        alert('Error saving data: ' + (error.response ? error.response.data : error.message));
+      });
+  };
+
   // Pagination logic
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
@@ -91,6 +132,8 @@ export const ExcelToTable = () => {
 
   return (
     <div className="excel-to-table">
+      <input type="text" placeholder="Excel Name" value={excelName} onChange={(e) => setExcelName(e.target.value)} />
+      <button onClick={() => fetchStoredData(excelName)}>Load Data</button>
       <input type="file" onChange={handleFileUpload} />
       <div className="input-fields">
         <input
@@ -133,6 +176,7 @@ export const ExcelToTable = () => {
             </tbody>
           </table>
           <button onClick={downloadExcel}>Download Excel</button>
+          <button onClick={saveToDatabase}>Save to Database</button>
           <div className="pagination">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
