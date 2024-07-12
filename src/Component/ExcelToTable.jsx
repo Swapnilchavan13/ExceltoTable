@@ -90,11 +90,20 @@ export const ExcelToTable = () => {
     setCurrentPage(1); // Reset to first page
   };
 
+  const addRow = () => {
+    const emptyRow = columns.reduce((acc, col) => {
+      acc[col.accessor] = "";
+      return acc;
+    }, {});
+    setData([...data, emptyRow]);
+    setCurrentPage(Math.ceil((data.length + 1) / rowsPerPage)); // Navigate to last page
+  };
+
   const handleInputChange = (e, rowIndex, columnId) => {
     const newValue = e.target.value;
-    const updatedData = data.map((row, idx) =>
-      idx === rowIndex ? { ...row, [columnId]: newValue } : row
-    );
+    const updatedData = [...data];
+    const actualIndex = indexOfFirstRow + rowIndex;
+    updatedData[actualIndex][columnId] = newValue;
     setData(updatedData);
   };
 
@@ -177,6 +186,7 @@ export const ExcelToTable = () => {
           </table>
           <button onClick={downloadExcel}>Download Excel</button>
           <button onClick={saveToDatabase}>Save to Database</button>
+          <button onClick={addRow}>Add Row</button>
           <div className="pagination">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
