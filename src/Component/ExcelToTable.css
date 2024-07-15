@@ -42,7 +42,7 @@
   }
   
   .styled-table thead tr {
-    background-color: #009879;
+    background-color: #026955;
     color: white;
     text-align: left;
   }
@@ -57,7 +57,11 @@
   }
   
   .styled-table tbody tr:nth-of-type(even) {
-    background-color: #f3f3f3;
+    background-color: #dfdede;
+  }
+
+  .styled-table tbody tr:nth-of-type(odd) {
+    background-color: #86cfa5;
   }
   
   .styled-table tbody tr:last-of-type {
