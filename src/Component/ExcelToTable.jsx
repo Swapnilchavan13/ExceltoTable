@@ -6,18 +6,31 @@ import './ExcelToTable.css';
 
 export const ExcelToTable = () => {
   const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [newColumn, setNewColumn] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage] = useState(15);
+  const [rowsPerPage] = useState(20);
   const [fileName, setFileName] = useState("");
   const [excelName, setExcelName] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (excelName) {
       fetchStoredData(excelName);
     }
   }, [excelName]);
+
+  useEffect(() => {
+    // Apply search filter
+    const filtered = data.filter(row => {
+      return Object.values(row).some(value =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+    setFilteredData(filtered);
+    setCurrentPage(1); // Reset to first page on search
+  }, [searchTerm, data]);
 
   const fetchStoredData = (name) => {
     axios.get(`http://localhost:5000/getData/${name}`)
@@ -96,6 +109,7 @@ export const ExcelToTable = () => {
       return acc;
     }, {});
     setData([...data, emptyRow]);
+    setFilteredData([...filteredData, emptyRow]);
     setCurrentPage(Math.ceil((data.length + 1) / rowsPerPage)); // Navigate to last page
   };
 
@@ -105,10 +119,15 @@ export const ExcelToTable = () => {
     const actualIndex = indexOfFirstRow + rowIndex;
     updatedData[actualIndex][columnId] = newValue;
     setData(updatedData);
+    setFilteredData(updatedData.filter(row => {
+      return Object.values(row).some(value =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }));
   };
 
   const downloadExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(filteredData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
     XLSX.writeFile(wb, "UpdatedData.xlsx");
@@ -129,8 +148,8 @@ export const ExcelToTable = () => {
   // Pagination logic
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
-  const totalPages = Math.ceil(data.length / rowsPerPage);
+  const currentRows = filteredData.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -153,7 +172,15 @@ export const ExcelToTable = () => {
         />
         <button onClick={addColumn}>Add Column</button>
       </div>
-      {data.length > 0 && (
+      <div className="search-bar">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {filteredData.length > 0 && (
         <>
           <table {...getTableProps()} className="styled-table">
             <thead>
