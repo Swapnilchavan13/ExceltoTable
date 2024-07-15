@@ -29,7 +29,7 @@ export const ExcelToTable = () => {
       );
     });
     setFilteredData(filtered);
-    setCurrentPage(1); // Reset to first page on search
+    //setCurrentPage(1); // Comment out this line to prevent resetting to the first page on search
   }, [searchTerm, data]);
 
   const fetchStoredData = (name) => {
@@ -116,14 +116,17 @@ export const ExcelToTable = () => {
   const handleInputChange = (e, rowIndex, columnId) => {
     const newValue = e.target.value;
     const updatedData = [...data];
-    const actualIndex = indexOfFirstRow + rowIndex;
+    const actualIndex = indexOfFirstRow + rowIndex; // Correctly map to the actual data index
     updatedData[actualIndex][columnId] = newValue;
     setData(updatedData);
-    setFilteredData(updatedData.filter(row => {
+
+    // Update filtered data based on the updated data
+    const filtered = updatedData.filter(row => {
       return Object.values(row).some(value =>
         value.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }));
+    });
+    setFilteredData(filtered);
   };
 
   const downloadExcel = () => {
@@ -201,7 +204,7 @@ export const ExcelToTable = () => {
                       <td {...cell.getCellProps()}>
                         <input
                           type="text"
-                          value={row.original[cell.column.id] || ""}
+                          value={cell.value || ""}
                           onChange={(e) => handleInputChange(e, row.index, cell.column.id)}
                         />
                       </td>
