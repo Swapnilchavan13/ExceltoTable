@@ -215,6 +215,7 @@ export const ExcelToTable = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+      <br />
       {filteredData.length > 0 && (
         <>
           <table {...getTableProps()} className="styled-table">
