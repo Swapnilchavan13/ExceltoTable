@@ -14,6 +14,8 @@ export const ExcelToTable = () => {
   const [fileName, setFileName] = useState("");
   const [excelName, setExcelName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({}); // State for dynamic filters
+  const [filterOptions, setFilterOptions] = useState({}); // State for filter options
 
   useEffect(() => {
     if (excelName) {
@@ -22,15 +24,19 @@ export const ExcelToTable = () => {
   }, [excelName]);
 
   useEffect(() => {
-    // Apply search filter
+    // Apply search filter and column filters
     const filtered = data.filter(row => {
-      return Object.values(row).some(value =>
+      const searchMatch = Object.values(row).some(value =>
         value.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
+      const columnFiltersMatch = Object.keys(filters).every(columnIndex => {
+        const columnId = columns[parseInt(columnIndex)]?.accessor;
+        return filters[columnIndex] ? row[columnId] == filters[columnIndex] : true;
+      });
+      return searchMatch && columnFiltersMatch;
     });
     setFilteredData(filtered);
-    //setCurrentPage(1); // Comment out this line to prevent resetting to the first page on search
-  }, [searchTerm, data]);
+  }, [searchTerm, data, filters, columns]);
 
   const fetchStoredData = (name) => {
     axios.get(`http://localhost:5000/getData/${name}`)
@@ -158,13 +164,39 @@ export const ExcelToTable = () => {
     setCurrentPage(page);
   };
 
+  const getUniqueValues = (columnId, selectedFilters) => {
+    const filteredData = data.filter(row => {
+      return Object.keys(selectedFilters).every(columnIndex => {
+        const columnId = columns[parseInt(columnIndex)]?.accessor;
+        return selectedFilters[columnIndex] ? row[columnId] == selectedFilters[columnIndex] : true;
+      });
+    });
+    return [...new Set(filteredData.map(row => row[columnId]))];
+  };
+  
+
+  const handleFilterChange = (columnIndex, selectedValue) => {
+    const updatedFilters = { ...filters, [columnIndex]: selectedValue };
+    setFilters(updatedFilters);
+  
+    // Update options for filters that come after the changed filter
+    const updatedFilterOptions = {};
+    for (let i = columnIndex + 1; i < columns.length; i++) {
+      updatedFilterOptions[i] = getUniqueValues(columns[i]?.accessor, updatedFilters);
+    }
+    setFilterOptions(prevOptions => ({ ...prevOptions, ...updatedFilterOptions }));
+  };
+  
+
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({ columns, data: currentRows }, useBlockLayout);
 
   return (
     <div className="excel-to-table">
-      <input type="text" placeholder="Excel Name" value={excelName} onChange={(e) => setExcelName(e.target.value)} />
-      <button onClick={() => fetchStoredData(excelName)}>Load Data</button>
+      <div>
+        <input type="text" placeholder="Excel Name" value={excelName} onChange={(e) => setExcelName(e.target.value)} />
+        <button onClick={() => fetchStoredData(excelName)}>Load Data</button>
+      </div>
       <input type="file" onChange={handleFileUpload} />
       <div className="input-fields">
         <input
@@ -186,15 +218,37 @@ export const ExcelToTable = () => {
       {filteredData.length > 0 && (
         <>
           <table {...getTableProps()} className="styled-table">
-            <thead>
-              {headerGroups.map((headerGroup) => (
-                <tr {...headerGroup.getHeaderGroupProps()}>
-                  {headerGroup.headers.map((column) => (
-                    <th {...column.getHeaderProps()}>{column.render("Header")}</th>
+          <thead>
+  {headerGroups.map((headerGroup) => (
+    <tr {...headerGroup.getHeaderGroupProps()}>
+      {headerGroup.headers.map((column, index) => (
+        <th {...column.getHeaderProps()}>
+          {columns[index] && (
+            // Display filter for specified columns (dynamically add column indices here)
+            (index == 2 || index == 6 || index == 5) ? ( // Add index 5 here
+              <div>
+                <select
+                  value={filters[index] || ""}
+                  onChange={(e) => handleFilterChange(index, e.target.value)}
+                >
+                  <option value="">{column.render("Header")}</option> {/* Use column header as placeholder */}
+                  {getUniqueValues(columns[index]?.accessor, filters).map((value, idx) => (
+                    <option key={idx} value={value}>
+                      {value}
+                    </option>
                   ))}
-                </tr>
-              ))}
-            </thead>
+                </select>
+              </div>
+            ) : (
+              column.render("Header")
+            )
+          )}
+        </th>
+      ))}
+    </tr>
+  ))}
+</thead>
+
             <tbody {...getTableBodyProps()}>
               {rows.map((row) => {
                 prepareRow(row);
