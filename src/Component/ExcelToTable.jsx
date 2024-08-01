@@ -121,19 +121,22 @@ export const ExcelToTable = () => {
 
   const handleInputChange = (e, rowIndex, columnId) => {
     const newValue = e.target.value;
-    const updatedData = [...data];
-    const actualIndex = indexOfFirstRow + rowIndex; // Correctly map to the actual data index
-    updatedData[actualIndex][columnId] = newValue;
-    setData(updatedData);
-
-    // Update filtered data based on the updated data
-    const filtered = updatedData.filter(row => {
-      return Object.values(row).some(value =>
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
-    setFilteredData(filtered);
+    
+    // Find the actual index in the original data
+    const actualIndex = data.findIndex(row => row == filteredData[indexOfFirstRow + rowIndex]);
+  
+    if (actualIndex !== -1) {
+      const updatedData = [...data];
+      updatedData[actualIndex][columnId] = newValue;
+      setData(updatedData);
+  
+      // Update the filtered data directly for immediate UI feedback
+      const updatedFilteredData = [...filteredData];
+      updatedFilteredData[indexOfFirstRow + rowIndex][columnId] = newValue;
+      setFilteredData(updatedFilteredData);
+    }
   };
+  
 
   const downloadExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredData);
