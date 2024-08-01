@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { useTable, useBlockLayout } from "react-table";
 import axios from "axios";
 import './ExcelToTable.css';
+import ChartDisplay from "./ChartDisplay";
 
 export const ExcelToTable = () => {
   const [data, setData] = useState([]);
@@ -196,6 +197,7 @@ export const ExcelToTable = () => {
 
   return (
     <div className="excel-to-table">
+
       <div>
         <input type="text" placeholder="Excel Name" value={excelName} onChange={(e) => setExcelName(e.target.value)} />
         <button onClick={() => fetchStoredData(excelName)}>Load Data</button>
@@ -290,6 +292,9 @@ export const ExcelToTable = () => {
               Next
             </button>
           </div>
+          <div className="chart-container">
+        <ChartDisplay data={data} />
+      </div>
         </>
       )}
     </div>
